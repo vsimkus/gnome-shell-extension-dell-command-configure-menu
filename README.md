@@ -2,7 +2,7 @@
 
 This extension adds gnome top-bar submenus to access [Dell Command Configure](https://www.dell.com/support/kbdoc/en-uk/000178000/dell-command-configure) options, which needs to be installed separately.
 
-Currently only primary battery charge mode is implemented via `primarybatterycfg` option.
+Currently only primary battery charge mode is implemented via `primarybatterycfg` option. Custom charge levels can be chosen in the preferences menu.
 
 ![Charge options](./img/charge-options.png)
 
