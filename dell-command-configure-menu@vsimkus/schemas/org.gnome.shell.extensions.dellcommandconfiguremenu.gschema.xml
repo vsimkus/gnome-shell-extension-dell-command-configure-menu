@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.dellcommandconfiguremenu" path="/org/gnome/shell/extensions/dellcommandconfiguremenu/">
+    <!-- See also: https://developer.gnome.org/glib/stable/gvariant-format-strings.html -->
+    <key name="custom-charge-start-charging" type="u">
+      <range min="50" max="95"/>
+      <default>50</default>
+    </key>
+    <key name="custom-charge-stop-charging" type="u">
+      <range min="55" max="100"/>
+      <default>80</default>
+    </key>
+  </schema>
+</schemalist>
