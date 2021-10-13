@@ -18,7 +18,7 @@
 
 /* exported init */
 
-const { GObject, St, Gio } = imports.gi;
+const { GObject, St, Gio, Clutter } = imports.gi;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
@@ -29,8 +29,6 @@ const _ = Gettext.gettext;
 const Main = imports.ui.main;
 const PopupMenu = imports.ui.popupMenu;
 const ModalDialog = imports.ui.modalDialog;
-
-const Clutter = imports.gi.Clutter;
 
 const CUSTOM_CHARGE_START_KEY = 'custom-charge-start-charging';
 const CUSTOM_CHARGE_STOP_KEY = 'custom-charge-stop-charging';
@@ -87,11 +85,11 @@ class DellCommandControlMenuExtension {
         this._uuid = uuid;
 
         ExtensionUtils.initTranslations(uuid);
-
-        this.settings = ExtensionUtils.getSettings(Me.metadata['settings-schema']);
     }
 
     enable() {
+        this.settings = ExtensionUtils.getSettings(Me.metadata['settings-schema']);
+
         let powerMenu = Main.panel.statusArea.aggregateMenu._power._item.menu;
 
         this._separator = new PopupMenu.PopupSeparatorMenuItem()
