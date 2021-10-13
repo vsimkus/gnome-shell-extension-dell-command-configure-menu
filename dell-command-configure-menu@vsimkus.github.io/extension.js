@@ -102,42 +102,78 @@ class DellCommandControlMenuExtension {
         let customChargeStop = this.settings.get_uint(CUSTOM_CHARGE_STOP_KEY);
         this._chargeCustom = new PopupMenu.PopupMenuItem(_('Charge Custom') + `=${customChargeStart}-${customChargeStop}`);
         // Connect to settings changes
-        this.settings.connect(`changed::${CUSTOM_CHARGE_START_KEY}`, () => {
+        this.chargeCustomStartChangedHandle = this.settings.connect(`changed::${CUSTOM_CHARGE_START_KEY}`, () => {
             customChargeStart = this.settings.get_uint(CUSTOM_CHARGE_START_KEY);
             this._chargeCustom.label.set_text(_('Charge Custom') + `=${customChargeStart}-${customChargeStop}`)
         });
-        this.settings.connect(`changed::${CUSTOM_CHARGE_STOP_KEY}`, () => {
+        this.chargeCustomStopChangedHandle = this.settings.connect(`changed::${CUSTOM_CHARGE_STOP_KEY}`, () => {
             customChargeStop = this.settings.get_uint(CUSTOM_CHARGE_STOP_KEY);
             this._chargeCustom.label.set_text(_('Charge Custom') + `=${customChargeStart}-${customChargeStop}`)
         });
-        this._chargeCustom.connect('activate', () => {
+        this.chargeCustomHandle = this._chargeCustom.connect('activate', () => {
             priveledgedExec(['/opt/dell/dcc/cctk', `--PrimaryBattChargeCfg=Custom:${customChargeStart}-${customChargeStop}`]);
         });
         powerMenu.addMenuItem(this._chargeCustom);
 
         // Standard charge
         this._chargeStandard = new PopupMenu.PopupMenuItem(_('Charge Standard'));
-        this._chargeStandard.connect('activate', () => {
+        this.chargeStandardHandle = this._chargeStandard.connect('activate', () => {
             priveledgedExec(['/opt/dell/dcc/cctk', '--PrimaryBattChargeCfg=Standard']);
         });
         powerMenu.addMenuItem(this._chargeStandard);
 
         // Express charge
         this._chargeExpress = new PopupMenu.PopupMenuItem(_('Charge Express'));
-        this._chargeExpress.connect('activate', () => {
+        this.chargeExpressHandle = this._chargeExpress.connect('activate', () => {
             priveledgedExec(['/opt/dell/dcc/cctk', '--PrimaryBattChargeCfg=Express']);
         });
         powerMenu.addMenuItem(this._chargeExpress);
     }
 
     disable() {
-        this._separator.destroy();
-        this._chargeCustom.destroy();
-        this._chargeCustom = null;
-        this._chargeStandard.destroy();
-        this._chargeStandard = null;
-        this._chargeExpress.destroy();
-        this._chargeExpress = null;
+        if (this._separator) {
+            this._separator.destroy();
+            this._separator = null;
+        }
+
+        if (this.settings) {
+            if (this.chargeCustomStartChangedHandle) {
+                this.settings.disconnect(this.chargeCustomStartChangedHandle);
+            }
+            if (this.chargeCustomStopChangedHandle) {
+                this.settings.disconnect(this.chargeCustomStopChangedHandle);
+            }
+        }
+
+        if (this._chargeCustom) {
+            if (this.chargeCustomHandle) {
+                this._chargeCustom.disconnect(this.chargeCustomHandle);
+                this.chargeCustomHandle = null;
+            }
+
+            this._chargeCustom.destroy();
+            this._chargeCustom = null;
+        }
+
+        if (this._chargeStandard) {
+            if (this.chargeStandardHandle) {
+                this._chargeStandard.disconnect(this.chargeStandardHandle);
+                this.chargeStandardHandle = null;
+            }
+
+            this._chargeStandard.destroy();
+            this._chargeStandard = null;
+        }
+
+        if (this._chargeExpress) {
+            if (this.chargeExpressHandle) {
+                this._chargeExpress.disconnect(this.chargeExpressHandle);
+                this.chargeExpressHandle = null;
+            }
+
+            this._chargeExpress.destroy();
+            this._chargeExpress = null;
+        }
     }
 }
 

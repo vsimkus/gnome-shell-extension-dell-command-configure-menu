@@ -11,8 +11,8 @@ Currently only primary battery charge mode is implemented via `primarybatterycfg
 ```sh
 git clone git://github.com/vsimkus/gnome-shell-extension-dell-command-configure-menu.git
 cd gnome-shell-extension-dell-command-configure-menu
-glib-compile-schemas --strict --targetdir=dell-command-configure-menu@vsimkus/schemas/ dell-command-configure-menu@vsimkus/schemas
-cp -r dell-command-configure-menu@vsimkus ~/.local/share/gnome-shell/extensions
+glib-compile-schemas --strict --targetdir=dell-command-configure-menu@vsimkus.github.io/schemas/ dell-command-configure-menu@vsimkus.github.io/schemas
+cp -r dell-command-configure-menu@vsimkus.github.io ~/.local/share/gnome-shell/extensions
 ```
 
 Restart the shell (`alt + F2` and then `r`) and then enable the extension.
