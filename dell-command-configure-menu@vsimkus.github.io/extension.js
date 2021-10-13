@@ -111,6 +111,10 @@ class DellCommandControlMenuExtension {
             this._chargeCustom.label.set_text(_('Charge Custom') + `=${customChargeStart}-${customChargeStop}`)
         });
         this.chargeCustomHandle = this._chargeCustom.connect('activate', () => {
+            // Make sure values are integers
+            if (!Number.isInteger(customChargeStart) || !Number.isInteger(customChargeStop)) {
+                throw new Error("Invalid limit values to custom charge config!");
+            }
             priveledgedExec(['/opt/dell/dcc/cctk', `--PrimaryBattChargeCfg=Custom:${customChargeStart}-${customChargeStop}`]);
         });
         powerMenu.addMenuItem(this._chargeCustom);
