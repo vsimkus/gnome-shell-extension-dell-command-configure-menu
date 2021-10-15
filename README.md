@@ -16,3 +16,7 @@ cp -r dell-command-configure-menu@vsimkus.github.io ~/.local/share/gnome-shell/e
 ```
 
 Restart the shell (`alt + F2` and then `r`) and then enable the extension.
+
+## Installation from extensions.gnome.org
+
+<https://extensions.gnome.org/extension/4545/dell-command-configure-menu/>
