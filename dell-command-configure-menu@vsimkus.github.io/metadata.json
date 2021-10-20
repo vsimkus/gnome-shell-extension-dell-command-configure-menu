@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "name": "Dell Command Configure menu",
   "description": "Adds submenu in gnome shell to access Dell Command Configure options.\n\nCurrently, only battery charge settings are implemented.\n\nThe Dell Command Configure tool must be installed separately from Dell https://www.dell.com/support/kbdoc/en-uk/000178000/dell-command-configure#Downloads.",
   "uuid": "dell-command-configure-menu@vsimkus.github.io",
@@ -7,6 +7,8 @@
   "gettext-domain": "dell-command-configure-menu",
   "url": "https://github.com/vsimkus/gnome-shell-extension-dell-command-configure-menu",
   "shell-version": [
-    "3.38"
+    "3.38",
+    "40",
+    "41"
   ]
 }
