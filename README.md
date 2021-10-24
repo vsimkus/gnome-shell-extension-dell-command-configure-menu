@@ -20,3 +20,7 @@ Restart the shell (`alt + F2` and then `r`) and then enable the extension.
 ## Installation from extensions.gnome.org
 
 <https://extensions.gnome.org/extension/4545/dell-command-configure-menu/>
+
+## Contributions
+
+Contributions are welcome. Please open a PR or an issue describing in detail what you would like to be added.
