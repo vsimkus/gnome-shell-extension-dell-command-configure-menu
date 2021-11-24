@@ -51,7 +51,8 @@ function buildPrefsWidget() {
     let startLabel = new Gtk.Label({
         label: _('Custom start charge') + ':',
         halign: Gtk.Align.START,
-        visible: true
+        visible: true,
+        hexpand: true
     });
     prefsWidget.attach(startLabel, 0, 1, 1, 1);
 
@@ -67,7 +68,8 @@ function buildPrefsWidget() {
     let stopLabel = new Gtk.Label({
         label: _('Custom stop charge') + ':',
         halign: Gtk.Align.START,
-        visible: true
+        visible: true,
+        hexpand: true
     });
     prefsWidget.attach(stopLabel, 0, 2, 1, 1);
 
@@ -79,17 +81,40 @@ function buildPrefsWidget() {
     stopCharging.set_value(customChargeStop);
     prefsWidget.attach(stopCharging, 1, 2, 1, 1);
 
+    let chargeDisclaimerPrefix = _(`NOTE: any changes to the battery charge levels will take effect after you click "`) + _('Charge Custom');
+    let chargeDisclaimerSuffix = _('" again.')
+    let disclaimer = new Gtk.Label({
+        label: `<i>${chargeDisclaimerPrefix}=${customChargeStart}-${customChargeStop}${chargeDisclaimerSuffix}</i>`,
+        halign: Gtk.Align.START,
+        use_markup: true,
+        visible: false,
+        wrap: true,
+        hexpand: true,
+        xalign: 0.0
+    });
+    prefsWidget.attach(disclaimer, 0, 3, 2, 2);
+
     // Make sure startCharging is less than stopCharging
     // and save on change
     startCharging.connect('value_changed', () => {
         let val = startCharging.get_value_as_int();
         stopCharging.set_range(val+CUSTOM_CHARGE_INCREMENTS, CUSTOM_CHARGE_MAX_STOP);
         this.settings.set_uint(CUSTOM_CHARGE_START_KEY, val);
+
+        let customChargeStart = this.settings.get_uint(CUSTOM_CHARGE_START_KEY);
+        let customChargeStop = this.settings.get_uint(CUSTOM_CHARGE_STOP_KEY);
+        disclaimer.set_label(`<i>${chargeDisclaimerPrefix}=${customChargeStart}-${customChargeStop}${chargeDisclaimerSuffix}</i>`);
+        disclaimer.set_visible(true);
     });
     stopCharging.connect('value_changed', () => {
         let val = stopCharging.get_value_as_int();
         startCharging.set_range(CUSTOM_CHARGE_MIN_START, val-CUSTOM_CHARGE_INCREMENTS);
         this.settings.set_uint(CUSTOM_CHARGE_STOP_KEY, val);
+
+        let customChargeStart = this.settings.get_uint(CUSTOM_CHARGE_START_KEY);
+        let customChargeStop = this.settings.get_uint(CUSTOM_CHARGE_STOP_KEY);
+        disclaimer.set_label(`<i>${chargeDisclaimerPrefix}=${customChargeStart}-${customChargeStop}${chargeDisclaimerSuffix}</i>`);
+        disclaimer.set_visible(true);
     });
 
     return prefsWidget;
