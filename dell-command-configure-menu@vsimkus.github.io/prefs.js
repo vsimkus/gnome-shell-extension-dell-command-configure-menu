@@ -26,7 +26,10 @@ function buildPrefsWidget() {
 
     // Create a parent widget that we'll return from this function
     let prefsWidget = new Gtk.Grid({
-        margin: 18,
+        margin_bottom: 18,
+        margin_end: 18,
+        margin_start: 18,
+        margin_top: 18,
         column_spacing: 12,
         row_spacing: 12,
         visible: true
