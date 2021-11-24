@@ -145,6 +145,7 @@ class DellCommandControlMenuExtension {
             if (this.chargeCustomStopChangedHandle) {
                 this.settings.disconnect(this.chargeCustomStopChangedHandle);
             }
+            this.settings = null;
         }
 
         if (this._chargeCustom) {
