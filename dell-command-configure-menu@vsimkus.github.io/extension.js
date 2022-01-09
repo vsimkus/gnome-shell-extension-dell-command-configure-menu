@@ -28,10 +28,17 @@ const _ = Gettext.gettext;
 
 const Main = imports.ui.main;
 const PopupMenu = imports.ui.popupMenu;
+const Ornament = imports.ui.popupMenu.Ornament;
 const ModalDialog = imports.ui.modalDialog;
 
 const CUSTOM_CHARGE_START_KEY = 'custom-charge-start-charging';
 const CUSTOM_CHARGE_STOP_KEY = 'custom-charge-stop-charging';
+const ASK_SETUP_PASSWORD_KEY = 'ask-setup-password';
+const CURRENT_CHARGE_MODE_KEY = 'current-charge-mode';
+const ENABLE_CUSTOM_CHARGE_KEY = 'enable-custom-charge';
+const ENABLE_STANDARD_CHARGE_KEY = 'enable-standard-charge';
+const ENABLE_ADAPTIVE_CHARGE_KEY = 'enable-adaptive-charge';
+const ENABLE_EXPRESS_CHARGE_KEY = 'enable-express-charge';
 
 // Modal dialog to show the output of the command
 const OutputModal = GObject.registerClass(
@@ -52,9 +59,64 @@ const OutputModal = GObject.registerClass(
     
     });
 
+const SetupPasswordModal = GObject.registerClass(
+    class SetupPasswordModal extends ModalDialog.ModalDialog {
+        _init(cb) {
+            super._init()
+    
+            let box = new St.BoxLayout({ vertical: true});
+            this.contentLayout.add(box);
+    
+            box.add(new St.Label({ text: "Type in your Setup Password"}));
+            let passwordField = St.PasswordEntry.new();
+
+            box.add(passwordField);
+
+            this.setButtons([
+                { 
+                    label: _('Close'),
+                    action: () => { this.close(global.get_current_time()); },
+                    key: Clutter.Escape
+                },
+                { 
+                    label: _('Ok'),
+                    action: () => { 
+                        this.close(global.get_current_time()); 
+                        cb(passwordField.text)
+                    },
+                    key: Clutter.Return
+                }
+            ]);
+
+            // open the dialog to make all fields visible
+            this.open(global.get_current_time())
+
+            // to focus an element it first needs to visible
+            global.stage.set_key_focus(passwordField);
+
+            // watch for key press to close dialog on Escape or proceed on Return
+            // return only works if you press ctrl + enter, don't know why
+            passwordField.connect('key-press-event', (o, e) => {
+                const symbol = e.get_key_symbol();
+
+                if (symbol === Clutter.KEY_Escape) {
+                    this.close(global.get_current_time()); 
+                } else if (symbol === Clutter.KEY_Return) { 
+                    this.close(global.get_current_time()); 
+                    cb(passwordField.text)
+                }
+            });
+            
+        }
+    });
+
 // Run terminal commands as root and display output in a modal
-function priveledgedExec(args) {
+function priveledgedExec(args, setupPassword, onSuccess) {
     try {
+        if (setupPassword) {
+            args.push('--ValSetupPwd=' + setupPassword)
+        }
+
         let proc = Gio.Subprocess.new(
             ['pkexec', '--user', 'root'].concat(args),
             Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE
@@ -63,20 +125,33 @@ function priveledgedExec(args) {
         proc.communicate_utf8_async(null, null, (proc, res) => {
             try {
                 let [, stdout, stderr] = proc.communicate_utf8_finish(res);
+                let dialog = null;
 
                 // Failure
-                if (!proc.get_successful())
+                if (!proc.get_successful()) {
+                    dialog = new OutputModal(stdout);
+                    dialog.open(global.get_current_time());
                     throw new Error(stderr);
+                }
 
                 // Success - show output in a modal
-                let dialog = new OutputModal(stdout);
+                dialog = new OutputModal(stdout);
                 dialog.open(global.get_current_time());
+                onSuccess()
             } catch (e) {
                 logError(e);
             }
         });
     } catch (e) {
         logError(e);
+    }
+}
+
+function handleChargeAction(cb, askSetupPassword) {
+    if (askSetupPassword) {
+        new SetupPasswordModal(cb);
+    } else {
+        cb()
     }
 }
 
@@ -87,17 +162,11 @@ class DellCommandControlMenuExtension {
         ExtensionUtils.initTranslations(uuid);
     }
 
-    enable() {
-        this.settings = ExtensionUtils.getSettings(Me.metadata['settings-schema']);
-
-        let powerMenu = Main.panel.statusArea.aggregateMenu._power._item.menu;
-
-        this._separator = new PopupMenu.PopupSeparatorMenuItem()
-        powerMenu.addMenuItem(this._separator);
-
-        // Custom charge
+    addCustomCharge() {
+        const _this = this;
         let customChargeStart = this.settings.get_uint(CUSTOM_CHARGE_START_KEY);
         let customChargeStop = this.settings.get_uint(CUSTOM_CHARGE_STOP_KEY);
+
         this._chargeCustom = new PopupMenu.PopupMenuItem(_('Charge Custom') + `=${customChargeStart}-${customChargeStop}`);
         // Connect to settings changes
         this.chargeCustomStartChangedHandle = this.settings.connect(`changed::${CUSTOM_CHARGE_START_KEY}`, () => {
@@ -113,31 +182,68 @@ class DellCommandControlMenuExtension {
             if (!Number.isInteger(customChargeStart) || !Number.isInteger(customChargeStop)) {
                 throw new Error("Invalid limit values to custom charge config!");
             }
-            priveledgedExec(['/opt/dell/dcc/cctk', `--PrimaryBattChargeCfg=Custom:${customChargeStart}-${customChargeStop}`]);
-        });
-        powerMenu.addMenuItem(this._chargeCustom);
 
-        // Standard charge
-        this._chargeStandard = new PopupMenu.PopupMenuItem(_('Charge Standard'));
-        this.chargeStandardHandle = this._chargeStandard.connect('activate', () => {
-            priveledgedExec(['/opt/dell/dcc/cctk', '--PrimaryBattChargeCfg=Standard']);
+            handleChargeAction(function(setupPassword) {
+                priveledgedExec(['/opt/dell/dcc/cctk', `--PrimaryBattChargeCfg=Custom:${customChargeStart}-${customChargeStop}`], setupPassword, () => {
+                    _this.setChargeOrnament('custom')
+                });
+            }, this.askSetupPassword)
+            
         });
-        powerMenu.addMenuItem(this._chargeStandard);
 
-        // Express charge
-        this._chargeExpress = new PopupMenu.PopupMenuItem(_('Charge Express'));
-        this.chargeExpressHandle = this._chargeExpress.connect('activate', () => {
-            priveledgedExec(['/opt/dell/dcc/cctk', '--PrimaryBattChargeCfg=Express']);
-        });
-        powerMenu.addMenuItem(this._chargeExpress);
+        this.popupMenuSection.addMenuItem(this._chargeCustom);
     }
 
-    disable() {
+    addStandardCharge() {
+        const _this = this;
+        this._chargeStandard = new PopupMenu.PopupMenuItem(_('Charge Standard'));
+        this.chargeStandardHandle = this._chargeStandard.connect('activate', () => {
+            handleChargeAction(function(setupPassword) {
+                priveledgedExec(['/opt/dell/dcc/cctk', '--PrimaryBattChargeCfg=Standard'], setupPassword, () => {
+                    _this.setChargeOrnament('standard')
+                });
+                
+            }, this.askSetupPassword)
+            
+        });
+        this.popupMenuSection.addMenuItem(this._chargeStandard);
+    }
+
+    addAdaptiveCharge() {
+        const _this = this;
+        this._chargeAdaptive = new PopupMenu.PopupMenuItem(_('Charge Adaptive'));
+        this.chargeAdaptiveHandle = this._chargeAdaptive.connect('activate', () => {
+            handleChargeAction(function(setupPassword) {
+                priveledgedExec(['/opt/dell/dcc/cctk', '--PrimaryBattChargeCfg=Adaptive'], setupPassword, () => {
+                    _this.setChargeOrnament('adaptive')
+                });
+            }, this.askSetupPassword)
+            
+        });
+        this.popupMenuSection.addMenuItem(this._chargeAdaptive);
+    }
+
+    addExpressCharge() {
+        const _this = this;
+        this._chargeExpress = new PopupMenu.PopupMenuItem(_('Charge Express'));
+        this.chargeExpressHandle = this._chargeExpress.connect('activate', () => {
+            handleChargeAction(function(setupPassword) {
+                priveledgedExec(['/opt/dell/dcc/cctk', '--PrimaryBattChargeCfg=Express'], setupPassword, () => {
+                    _this.setChargeOrnament('express')
+                });
+            }, this.askSetupPassword)
+        });
+        this.popupMenuSection.addMenuItem(this._chargeExpress);
+    }
+
+    destroySeparator() {
         if (this._separator) {
             this._separator.destroy();
             this._separator = null;
         }
-
+    }
+    
+    destroySettings() {
         if (this.settings) {
             if (this.chargeCustomStartChangedHandle) {
                 this.settings.disconnect(this.chargeCustomStartChangedHandle);
@@ -145,9 +251,25 @@ class DellCommandControlMenuExtension {
             if (this.chargeCustomStopChangedHandle) {
                 this.settings.disconnect(this.chargeCustomStopChangedHandle);
             }
+
+            if (this.enableCustomChargeHandle) {
+                this.settings.disconnect(this.enableCustomChargeHandle);
+            }
+            if (this.enableStandardChargeHandle) {
+                this.settings.disconnect(this.enableStandardChargeHandle);
+            }
+            if (this.enableAdaptiveChargeHandle) {
+                this.settings.disconnect(this.enableAdaptiveChargeHandle);
+            }
+            if (this.enableExpressChargeHandle) {
+                this.settings.disconnect(this.enableExpressChargeHandle);
+            }
+
             this.settings = null;
         }
-
+    }
+    
+    destroyCustomCharge() {
         if (this._chargeCustom) {
             if (this.chargeCustomHandle) {
                 this._chargeCustom.disconnect(this.chargeCustomHandle);
@@ -157,7 +279,9 @@ class DellCommandControlMenuExtension {
             this._chargeCustom.destroy();
             this._chargeCustom = null;
         }
-
+    }
+    
+    destroyStandardCharge() {
         if (this._chargeStandard) {
             if (this.chargeStandardHandle) {
                 this._chargeStandard.disconnect(this.chargeStandardHandle);
@@ -167,7 +291,21 @@ class DellCommandControlMenuExtension {
             this._chargeStandard.destroy();
             this._chargeStandard = null;
         }
+    }
+    
+    destroyAdaptiveCharge() {
+        if (this._chargeAdaptive) {
+            if (this.chargeAdaptiveHandle) {
+                this._chargeAdaptive.disconnect(this.chargeAdaptiveHandle);
+                this.chargeAdaptiveHandle = null;
+            }
 
+            this._chargeAdaptive.destroy();
+            this._chargeAdaptive = null;
+        }
+    }
+    
+    destroyExpressCharge() {
         if (this._chargeExpress) {
             if (this.chargeExpressHandle) {
                 this._chargeExpress.disconnect(this.chargeExpressHandle);
@@ -176,6 +314,144 @@ class DellCommandControlMenuExtension {
 
             this._chargeExpress.destroy();
             this._chargeExpress = null;
+        }
+    }
+
+    setChargeOrnament(itemCode) {
+        if (this._chargeCustom) {
+            this._chargeCustom.setOrnament(Ornament.NONE);
+        }
+
+        if (this._chargeStandard) {
+            this._chargeStandard.setOrnament(Ornament.NONE);
+        }
+
+        if (this._chargeAdaptive) {
+            this._chargeAdaptive.setOrnament(Ornament.NONE);
+        }
+        
+        if (this._chargeExpress) {
+            this._chargeExpress.setOrnament(Ornament.NONE);
+        }
+
+        let item = null;
+        switch(itemCode) {
+            case 'custom':
+                item = this._chargeCustom
+                break;
+
+            case 'standard':
+                item = this._chargeStandard
+                break;
+
+            case 'adaptive':
+                item = this._chargeAdaptive
+                break;
+
+            case 'express':
+                item = this._chargeExpress
+                break;
+        }
+
+        if (item) {
+            item.setOrnament(Ornament.DOT);
+            this.settings.set_string(CURRENT_CHARGE_MODE_KEY, itemCode);
+        }
+    }
+
+    enable() {
+        const powerMenu = Main.panel.statusArea.aggregateMenu._power._item.menu;
+
+        this.settings = ExtensionUtils.getSettings(Me.metadata['settings-schema']);
+        this.popupMenuSection = new PopupMenu.PopupMenuSection();
+        this._separator = new PopupMenu.PopupSeparatorMenuItem()
+
+        powerMenu.addMenuItem(this._separator);
+        powerMenu.addMenuItem(this.popupMenuSection);
+
+        // Requires setup password
+        this.askSetupPassword = this.settings.get_boolean(ASK_SETUP_PASSWORD_KEY);
+
+        let enableCustomCharge = this.settings.get_boolean(ENABLE_CUSTOM_CHARGE_KEY);
+        let enableStandardCharge = this.settings.get_boolean(ENABLE_STANDARD_CHARGE_KEY);
+        let enableAdaptiveCharge = this.settings.get_boolean(ENABLE_ADAPTIVE_CHARGE_KEY);
+        let enableExpressCharge = this.settings.get_boolean(ENABLE_EXPRESS_CHARGE_KEY);
+
+        this.enableCustomChargeHandle = this.settings.connect(`changed::${ENABLE_CUSTOM_CHARGE_KEY}`, () => {
+            enableCustomCharge = this.settings.get_uint(CUSTOM_CHARGE_START_KEY);
+
+            if (enableCustomCharge) {
+                this.addCustomCharge()
+            } else {
+                this.destroyCustomCharge();
+            }
+        });
+
+        this.enableStandardChargeHandle = this.settings.connect(`changed::${ENABLE_STANDARD_CHARGE_KEY}`, () => {
+            enableStandardCharge = this.settings.get_boolean(ENABLE_STANDARD_CHARGE_KEY);
+
+            if (enableStandardCharge) {
+                this.addStandardCharge()
+            } else {
+                this.destroyStandardCharge();
+            }
+        });
+
+        this.enableAdaptiveChargeHandle = this.settings.connect(`changed::${ENABLE_ADAPTIVE_CHARGE_KEY}`, () => {
+            enableAdaptiveCharge = this.settings.get_boolean(ENABLE_ADAPTIVE_CHARGE_KEY);
+
+            if (enableAdaptiveCharge) {
+                this.addAdaptiveCharge()
+            } else {
+                this.destroyAdaptiveCharge();
+            }
+        });
+
+        this.enableExpressChargeHandle = this.settings.connect(`changed::${ENABLE_EXPRESS_CHARGE_KEY}`, () => {
+            enableExpressCharge = this.settings.get_boolean(ENABLE_EXPRESS_CHARGE_KEY);
+
+            if (enableExpressCharge) {
+                this.addExpressCharge()
+            } else {
+                this.destroyExpressCharge();
+            }
+        });
+
+        // custom charge
+        if (enableCustomCharge) {
+            this.addCustomCharge()
+        }
+
+        // Standard charge
+        if (enableStandardCharge) {
+            this.addStandardCharge()
+        }
+
+        // Adaptive charge
+        if (enableAdaptiveCharge) {
+            this.addAdaptiveCharge()
+        }
+
+        // Express charge
+        if (enableExpressCharge) {
+            this.addExpressCharge();
+        }
+
+        // set current charge ornament
+        this.setChargeOrnament(this.settings.get_string(CURRENT_CHARGE_MODE_KEY))
+
+    }
+
+    disable() {
+        this.destroySeparator();
+        this.destroySettings();
+        this.destroyCustomCharge();
+        this.destroyStandardCharge();
+        this.destroyAdaptiveCharge();
+        this.destroyExpressCharge();
+        
+        if (this.popupMenuSection) {
+            this.popupMenuSection.destroy();
         }
     }
 }

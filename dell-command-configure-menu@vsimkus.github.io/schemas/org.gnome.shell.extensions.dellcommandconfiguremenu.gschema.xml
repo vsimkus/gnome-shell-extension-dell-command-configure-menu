@@ -10,5 +10,23 @@
       <range min="55" max="100"/>
       <default>80</default>
     </key>
+    <key name="enable-custom-charge" type="b">
+      <default>true</default>
+    </key>
+    <key name="enable-standard-charge" type="b">
+      <default>true</default>
+    </key>
+    <key name="enable-adaptive-charge" type="b">
+      <default>true</default>
+    </key>
+    <key name="enable-express-charge" type="b">
+      <default>true</default>
+    </key>
+    <key name="ask-setup-password" type="b">
+      <default>false</default>
+    </key>
+    <key name="current-charge-mode" type="s">
+      <default>""</default>
+    </key>
   </schema>
 </schemalist>
