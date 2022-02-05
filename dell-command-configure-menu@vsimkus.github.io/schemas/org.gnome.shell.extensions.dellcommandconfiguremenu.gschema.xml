@@ -22,7 +22,10 @@
     <key name="enable-express-charge" type="b">
       <default>true</default>
     </key>
-    <key name="ask-setup-password" type="b">
+    <key name="ask-bios-setup-password" type="b">
+      <default>false</default>
+    </key>
+    <key name="indicate-current-charge-mode" type="b">
       <default>false</default>
     </key>
     <key name="current-charge-mode" type="s">
