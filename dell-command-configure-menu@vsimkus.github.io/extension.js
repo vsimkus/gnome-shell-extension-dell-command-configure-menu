@@ -250,8 +250,6 @@ class DellCommandControlMenuExtension {
             if (this.enableExpressChargeHandle) {
                 this.settings.disconnect(this.enableExpressChargeHandle);
             }
-
-            this.settings = null;
         }
     }
     
@@ -442,9 +440,13 @@ class DellCommandControlMenuExtension {
         this.destroyStandardCharge();
         this.destroyAdaptiveCharge();
         this.destroyExpressCharge();
-        
+
         if (this.popupMenuSection) {
             this.popupMenuSection.destroy();
+        }
+
+        if (this.settings) {
+            this.settings = null;
         }
     }
 }
