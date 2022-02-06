@@ -2,17 +2,21 @@
 
 This extension adds gnome top-bar submenus to access [Dell Command Configure](https://www.dell.com/support/kbdoc/en-uk/000178000/dell-command-configure) options, which needs to be installed separately.
 
-![Charge options](./img/charge-options.png)
-
 ## Supported features
 
 Currently only primary battery charge mode is implemented via `primarybatterycfg` option. Custom charge levels can be chosen in the preferences menu.
 
-* Custom charge mode (set charge levels in preferences)
+* Custom charge mode
 * Express charge mode
 * Adaptive charge mode
 * Standard charge mode
 * BIOS setup password validation
+
+| Feature                                   | Preview                                      |
+|-------------------------------------------|----------------------------------------------|
+| Charge options in Power submenu           | ![Charge options](./img/charge-options.png)  |
+| Preferences menu                          | ![Preferences menu](./img/prefs-menu.png)    |
+| BIOS Setup password dialog when "Ask for BIOS Setup password" is activated in preferences menu                | ![BIOS setup password dialog](./img/bios-setup-pass.png)    |
 
 ## Installation from git
 

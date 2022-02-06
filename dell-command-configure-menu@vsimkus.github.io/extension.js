@@ -55,10 +55,13 @@ const BIOSSetupPasswordModal = GObject.registerClass(
         _init(cb) {
             super._init();
 
-            let box = new St.BoxLayout({ vertical: true});
+            let box = new St.BoxLayout({ 
+                vertical: true,
+                style: 'spacing: 6px'
+            });
             this.contentLayout.add(box);
 
-            box.add(new St.Label({ text: _('Enter your BIOS Setup Password')}));
+            box.add(new St.Label({ text: _('Enter your BIOS Setup Password') + ':'}));
             let passwordField = St.PasswordEntry.new();
 
             box.add(passwordField);
@@ -85,8 +88,7 @@ const BIOSSetupPasswordModal = GObject.registerClass(
             // to focus an element it first needs to visible
             global.stage.set_key_focus(passwordField);
 
-            // watch for key press to close dialog on Escape or proceed on Return
-            // return only works if you press ctrl + enter, don't know why
+            // watch for key press to close dialog on Escape or proceed on Ctrl+Return
             passwordField.connect('key-press-event', (o, e) => {
                 const symbol = e.get_key_symbol();
 
@@ -94,8 +96,13 @@ const BIOSSetupPasswordModal = GObject.registerClass(
                     this.close(global.get_current_time());
                 } else if (symbol === Clutter.KEY_Return) {
                     this.close(global.get_current_time());
-                    cb(passwordField.text)
+                    cb(passwordField.text);
                 }
+            });
+            // Close dialog and proceed on Return key
+            passwordField.clutter_text.connect('activate', (actor) => {
+                this.close(global.get_current_time());
+                cb(passwordField.text);
             });
         }
     });
