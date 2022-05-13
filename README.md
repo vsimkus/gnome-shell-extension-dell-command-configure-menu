@@ -20,6 +20,8 @@ Currently only primary battery charge mode is implemented via `primarybatterycfg
 
 ## Installation from git
 
+> :exclamation: If your Gnome version is not listed in [metadata.json](./dell-command-configure-menu%40vsimkus.github.io/metadata.json), add it to the `shell-version` list before running the `cp -r ...` command below.
+
 ```sh
 git clone git://github.com/vsimkus/gnome-shell-extension-dell-command-configure-menu.git
 cd gnome-shell-extension-dell-command-configure-menu
